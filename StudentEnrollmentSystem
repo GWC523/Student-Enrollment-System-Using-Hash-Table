@@ -1,0 +1,639 @@
+#include<iostream>
+#include<list>
+#include<cstring>
+#include<vector>
+#include<iomanip> 
+
+using namespace std;
+
+/*Requirement 8 - Create a hash table of a student enrollment system in an elementary school where data contain family
+name, first name, middle name, age, gender, id number, contact number, and address.
+
+Main functions:
+(1) Creates a hash table with student ID number as a key
+(2) Unenrolls student (delete)
+(3) Search a particular student ID and display the student's info
+(4) Updates student info using student ID as access
+
+Additionals:
+* id number generator
+* displays all info strings to uppercase
+* checks the number of students enrolled
+* checks if string input for contact number is a number 
+
+*/
+
+//Use to input the student's information
+struct student {
+    string familyName = {0};
+    string firstName = {0};
+    string middleName = {0};
+    int age = 0;
+    string gender = {0};
+    int idNumber = 0;
+    string contactNumber = {0};
+    string student_address = {0};
+};
+
+
+//Lets the program generate a unique Student ID number after enrollment 
+int id_Number_Generator() {return 1 + (std::rand() % (99999));}
+
+//Class for extra functions for catching errors 
+class utility {
+
+    public: 
+    //for neat display, displays all info to uppercase
+    string to_Upper(string str){
+           int n = str.length();
+           char string_array[n+1];
+           strcpy(string_array,str.c_str()); 
+
+          for(unsigned i=0; i<strlen(string_array);i++){
+            string_array[i] = toupper(string_array[i]);
+          }
+
+          int size = sizeof(string_array) / sizeof(char); 
+
+          string s = "";
+
+          for(int i=0;i<size;i++){
+              s = s + string_array[i];
+          }
+          return s;
+    }
+    //to prevent error when user inputs a char or string in an int type variable 
+    bool is_Number(const string &str){
+        if(str.empty() || ((!isdigit(str[0])) && (str[0] != '-') && (str[0] != '+'))) return false;
+
+        char * p;
+        strtol(str.c_str(), &p, 10);
+
+        return (*p == 0);
+    }
+
+};
+//The creation of hashtable to store the key and student information 
+class HashTable {
+    
+    private:
+        static const int hashGroups = 100; 
+        list<pair<int,student>>table[hashGroups];
+        int num_students = 0; 
+        utility util;
+
+    public: 
+        bool isEmpty() const;
+        int hashFunction(int key);
+        void enroll(pair<int,student>studentInfo);
+        void unenroll(int key);
+        void search(int key);
+        bool ifExist(int key);
+        void update(int key,student info);
+        void display();
+        
+};
+
+//Checks if empty for prompting the user when unenrolling a student 
+bool HashTable::isEmpty() const{
+    int sum{}; 
+    
+    for(int i=0; i < hashGroups; i++){
+        sum += table[i].size(); 
+    }
+    
+    if(!sum) {
+        return true;
+    }
+    return false;
+}
+int HashTable::hashFunction(int key){
+    return key%hashGroups; 
+}
+
+//Enrolls the student and adds the student information
+void HashTable::enroll(pair<int,student> item){
+    
+    int hashValue = hashFunction(item.first);
+    auto& cell = table[hashValue];
+
+    if(table[hashValue].empty() == 1){
+
+            cell.emplace_back(item);
+            num_students++;
+
+    }else{
+        int tempValue = hashValue;
+        item.first = id_Number_Generator();
+        hashValue = hashFunction(item.first); 
+
+        while(tempValue == hashValue){
+            tempValue = hashValue;
+            item.first = id_Number_Generator();
+            hashValue = hashFunction(item.first); 
+        }
+
+        cell.emplace_back(item);
+        num_students++;
+
+    }
+}
+
+void HashTable::unenroll(int key) {
+    int hashValue = hashFunction(key);
+    auto& cell = table[hashValue];
+    bool keyExists = false; 
+    for(auto bItr=begin(cell);bItr != end(cell); bItr++){
+        if(bItr->first == key){
+            keyExists = true;
+            bItr = cell.erase(bItr); 
+            cout<<"[INFO] Student Unenrolled" <<endl;
+            num_students--;
+            break;
+        }
+    }
+
+    if(!keyExists){
+        cout<< "[WARNING] Student Not Found. Incorrect Student ID Number"<<endl;
+    }
+}
+
+//Display all the student information 
+void HashTable::display(){
+
+    if(isEmpty() == true){
+        cout<<"[INFO] Nothing to display. Table is still empty."<<endl;
+    }
+    else{
+    cout<<"\n------------------------------------------------------------------------------------>Enrolled Summary<-----------------------------------------------------------------------------------"<<endl;  
+        cout<<"****************************************"<<endl;
+        cout<<"Current number of students enrolled: "<<num_students<<endl;
+        cout<<"****************************************"<<endl<<endl;
+
+        cout<<"----------------------------------------------------------------------------------->Enrolled Students<-----------------------------------------------------------------------------------"<<endl;
+
+            cout<<"_________________________________________________________________________________________________________________________________________________________________________________________"<<endl;  
+            cout<< left << setw(17) << "ID Number" << setw(24) << "|      Family Name" << setw(33) << "|          First Name"<< setw(25) << "|      Middle Name"; 
+            cout<< setw(10) << "|   Age" << setw(12) << "|   Gender" << setw(25) << "|     Contact Number" << setw(10) << "|          Student Address" <<endl;
+            cout<<"_________________________________________________________________________________________________________________________________________________________________________________________"<<endl; 
+
+        for(int i=0; i<hashGroups; i++){
+            if(table[i].size() == 0) continue;
+
+
+            for(auto bItr = table[i].begin();bItr != table[i].end(); bItr++) {
+
+                int widthID=21; //Family Name Set Width
+                int widthFamN=22,widthFirstN=34,widthMN=22,widthAge=10,widthGender=13,widthContact=23,widthSA=10;
+                
+                string famname = bItr->second.familyName;
+                string firstname = bItr->second.firstName;
+                string midname = bItr->second.middleName;
+                string address = bItr->second.student_address;
+
+
+                cout << left
+                    << "2020-"<< setw(widthID) <<bItr->first
+                    << setw(widthFamN) << util.to_Upper(famname)
+                    << setw(widthFirstN) << util.to_Upper(firstname)
+                    << setw(widthMN) << util.to_Upper(midname)
+                    << setw(widthAge) << bItr->second.age
+                    << setw(widthGender) << bItr->second.gender
+                    << setw(widthContact) << bItr->second.contactNumber
+                    << setw(widthSA) << util.to_Upper(address);
+                    cout << endl;
+            }
+        
+        }
+    }
+}
+
+//Search student by id number. If found, display, if not throw a warning
+void HashTable::search(int key){
+    bool keyExists = false; 
+
+    if(isEmpty() == true){
+        cout<<"[INFO] Nothing to search. Table is still empty."<<endl;
+    }
+    else{
+
+    cout<<"\n------------------------------------------------------------------------------------->Results<-----------------------------------------------------------------------------------------"<<endl;
+
+    
+        for(int i=0; i<hashGroups; i++){
+            if(table[i].size() == 0) continue;
+
+            for(auto bItr = table[i].begin();bItr != table[i].end(); bItr++) {
+                if(bItr->first == key){
+                    keyExists = true; 
+
+                    cout<<"[INFO] Student Found!"<<endl<<endl;
+                    
+                    cout<<"[STUDENT ID 2020-"<<bItr->first<<"]"<<endl;
+                    cout<<"Family Name----->"<<bItr->second.familyName<<endl;
+                    cout<<"First Name------>"<<bItr->second.firstName<<endl;
+                    cout<<"Middle Name----->"<<bItr->second.middleName<<endl;
+                    cout<<"Age------------->"<<bItr->second.age<<endl;
+                    cout<<"Gender---------->"<<bItr->second.gender<<endl;
+                    cout<<"Contact Number-->"<<bItr->second.contactNumber<<endl;
+                    cout<<"Address--------->"<<bItr->second.student_address<<endl;
+                }
+                
+            }
+        }
+
+        if(!keyExists){
+                cout<<"[***WARNING***] Student Not Found. Incorrect Student ID Number"<<endl;
+        }
+    } 
+}
+//Checks if key already exists - when ID generator produces a duplicate key
+bool HashTable::ifExist(int key){
+
+     for(int i=0; i<hashGroups; i++){
+        if(table[i].size() == 0) continue;
+
+        for(auto bItr = table[i].begin();bItr != table[i].end(); bItr++){
+            if(bItr->first == key){
+                return true;
+            }
+            
+        }
+  
+    }
+
+    return false;
+}
+
+void HashTable::update(int key,student info){
+    bool keyExists = false;
+
+    if(isEmpty() == true){
+        cout<<"[INFO] Nothing to update. Table is still empty"<<endl;
+    }
+    else{
+        for(int i=0; i<hashGroups; i++){
+            if(table[i].size() == 0) continue;
+
+            for(auto bItr = table[i].begin();bItr != table[i].end(); bItr++) {
+                if(bItr->first == key){
+                    keyExists = true; 
+                    bItr->second = info;
+                    cout<<"[INFO] Student Record Update Successful"<<endl;
+                }
+            }
+            if(!keyExists){
+                cout<<"[***WARNING***] Student Not Found. Incorrect Student ID Number"<<endl;
+            }
+        }
+    }
+}
+
+
+int main(){
+
+    int choice,element2,age,id; 
+    bool continueLoop = true, invalidchoice;
+    string strChoice;
+    utility util;
+
+    student info;
+    string name,gender,address,contactnum; 
+    pair<int,student> dir;
+
+    HashTable a;
+
+    while(continueLoop == true){
+    cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+    cout<<"                                                                                          ELEMENTARY                                                                                       "<<endl;
+    cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+    cout<<"                                                                                   STUDENT ENROLLMENT SYSTEM                                                                               "<<endl;
+    cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+    cout<<"--------------------------------------------------------------------------------------->Master Database<-----------------------------------------------------------------------------------"<<endl<<endl;
+    cout<<" 1> Enroll a Student             4> Search Record\n 2> Unenroll a student           5> Update Student Record\n 3> Display Record               6> Exit"<<endl<<endl;
+    cout<<" Enter number(choice):";
+    getline(cin,strChoice);
+
+            while(!util.is_Number(strChoice)){
+                cout<< "[***WARNING***] Error. Invalid Input"<<endl;
+                cout<<"\nChoice: ";
+                getline(cin,strChoice);
+            }
+            choice = stoi(strChoice);
+    
+        switch(choice){
+            case 1:
+            cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+            cout<<"--------------------------------------------------------------------------------------->Enroll Student<------------------------------------------------------------------------------------"<<endl<<endl;
+            cout<<"[INFO] Fill up the necessary info. Your student ID of 1-5 digits [2020-xxxxx] would then be generated and shown."<<endl<<endl<<endl; 
+
+            cout<<" FORM TO FILL:"<<endl;
+            cout<<" ***************************************************************"<<endl;
+            cout<<" | *Family Name              *Age              *Student Address|\n"
+                <<" | *First Name               *Gender                           |\n"
+                <<" | *Middle Name              *Contact Number                   |"<<endl;
+            cout<<" ***************************************************************"<<endl;
+
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter Family Name:"<<endl;
+                getline(cin,name);
+            
+                info.familyName = name; 
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter First Name:"<<endl;
+                getline(cin,name);
+
+                info.firstName = name;
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter Middle Name:"<<endl;
+                getline(cin,name);
+
+                info.middleName = name;
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter Age:"<<endl;
+                getline(cin,strChoice); //If just int, it would have an error when user inputs a "2w" or any number proceeding with a string. 
+
+                    while(!util.is_Number(strChoice)){
+                        cout<< "[***WARNING***] Error. Invalid Input"<<endl;
+                        cout<<"\nEnter Age: ";
+                        getline(cin,strChoice);
+                    }
+
+                    age= stoi(strChoice);//converts the string back to int
+
+                while(age<1 || age>500){
+                cout<< "[***WARNING***] Error. Invalid Input. No negative age exists."<<endl;
+                cout<< " Enter Age:";        
+                getline(cin,strChoice);
+                age=stoi(strChoice);
+                }
+
+                info.age = age; 
+            cout<<" ***************************************************************"<<endl;
+                invalidchoice = true;
+                while(invalidchoice == true){
+                    cout<<"\n Enter Gender:"<<endl;
+                    cout<< " 1> Male 2> Female"<<endl;
+                    cout<< " Enter the number of choice:"<<endl;
+                    getline(cin,strChoice); 
+
+                    while(!util.is_Number(strChoice)){
+                        cout<< "[***WARNING***] Error. Invalid Input"<<endl;
+                        cout<<"\nChoice: ";
+                        getline(cin,strChoice);
+                    }
+
+                    element2 = stoi(strChoice);
+
+                    if(element2 == 1){
+                        info.gender = "MALE";
+                        invalidchoice = false;
+                    }
+                    else if(element2 == 2){
+                        info.gender = "FEMALE";
+                        invalidchoice = false;
+                    }
+                    else{
+                        cout<<"[**WARNING**] Invalid Input, info not stored. (1) Male (2) Female"<<endl;   
+                    }
+                }
+            cout<<" ***************************************************************"<<endl;
+                cout<< "\n Enter contact number:"<<endl;
+                getline(cin,contactnum);
+                while(util.is_Number(contactnum) == 0){
+                    cout<<"[**WARNING**] Invalid Input, non-integer. Info not stored."<<endl;
+                    cout<< " Enter contact number:";
+                    getline(cin,contactnum);
+                }
+                info.contactNumber = contactnum;
+
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter address:"<<endl;
+                getline(cin,address);
+
+                info.student_address = address;
+
+                id = id_Number_Generator(); 
+
+                if(a.ifExist(id) == false){
+                    dir = {id, info};
+                    a.enroll(dir);
+
+                    cout<<"[INFO] Student successfully enrolled."<<endl;
+                    cout<<"[INFO] Student ID Number Generated.... 2020-["<<id<<"]."<<endl;
+                    cout<<"[INFO] The digit/s inside the bracket will serve as your pass for accessing other functions"<<endl;
+                }else{
+                    while(a.ifExist(id) == false){
+                        id = id_Number_Generator(); 
+                        dir = {id, info};
+                        a.enroll(dir);
+                    }
+
+                    cout<<"[INFO] Student successfully enrolled."<<endl;
+                    cout<<"[INFO] Student ID Number Generated.... 2020-["<<id<<"]."<<endl;
+                    cout<<"[INFO] The digit/s inside the bracket will serve as your pass for accessing other functions"<<endl;
+                }
+
+            cout<<" \n\n\n[INFO] Welcome New Enrollee! Student ID:2020-"<<id<<endl;
+            cout<<"--------------------------------------------------"<<endl;
+            cout<<"STUDENT ID [digit]: ["<<id<<"]"<<endl;
+                    cout<<"Family Name----->"<<info.familyName<<endl;
+                    cout<<"First Name------>"<<info.firstName<<endl;
+                    cout<<"Middle Name----->"<<info.middleName<<endl;
+                    cout<<"Age------------->"<<info.age<<endl;
+                    cout<<"Gender---------->"<<info.gender<<endl;
+                    cout<<"Contact Number-->"<<info.contactNumber<<endl;
+                    cout<<"Address--------->"<<info.student_address<<endl;
+            cout<<"--------------------------------------------------"<<endl;
+            
+            cout << string(2, '\n');
+            break;
+        
+            case 2: //Unenroll a student
+            cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+            cout<<"--------------------------------------------------------------------------------------->Unenroll Student<----------------------------------------------------------------------------------"<<endl<<endl;
+            
+            
+            if(a.isEmpty() == true){
+                 cout<<"[INFO] Nothing to delete. Table is still empty."<<endl;
+            }
+            else{
+                cout<<"[NOTE] The digit/s inside the bracket during enrollment serves as your student ID for the access."<<endl;
+                cout<<"Enter student ID:";
+                cin>>id;
+                a.unenroll(id);
+            }
+            break;
+
+            case 3://Display a student
+            cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+            cout<<"----------------------------------------------------------------------------------------->DISPLAY ALL<-------------------------------------------------------------------------------------"<<endl<<endl;
+            a.display(); 
+
+            break;
+
+            case 4://Search student
+            cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+            cout<<"----------------------------------------------------------------------------------------->SEARCH STUDENT<----------------------------------------------------------------------------------"<<endl<<endl;
+            
+            
+            if(a.isEmpty() == true){
+                cout<<"[INFO] Nothing to search. Table is still empty."<<endl;
+            }else{
+                cout<<"[NOTE] The digit/s inside the bracket during enrollment serves as your student ID for the access."<<endl;
+                cout<<"Enter student ID:";
+                cin>>id;
+
+                while(cin.fail() || id<0 || id>999999){
+                    cout<<"[**WARNING**] Invalid input."<<endl;
+                    cin.clear();   
+                    cin.ignore(256,'\n');
+                    cout<<"Enter student ID:";
+                    cin>>id;
+                }
+                
+                a.search(id);
+                cin.ignore();
+            }
+            break;
+
+            case 5://Update Record, function if the user wants to change all info of student
+            cout<<"___________________________________________________________________________________________________________________________________________________________________________________________"<<endl;
+            cout<<"----------------------------------------------------------------------------------------->UPDATE RECORD<----------------------------------------------------------------------------------"<<endl<<endl;
+            cout<<"[NOTE] The digit/s inside the bracket during enrollment serves as your student ID for the access."<<endl;
+            
+            if(a.isEmpty() == true){
+                cout<<"[INFO] Nothing to display. Table is still empty."<<endl;
+            }
+            else{
+                cout<<"Enter student ID:";
+                cin>>id;   
+
+
+
+                if(a.ifExist(id) == true){
+            
+            cout<<"[INFO] Fill up the necessary info to update."<<endl<<endl<<endl; 
+
+            cout<<"FORM TO UPDATE:"<<endl;
+            cout<<" ***************************************************************"<<endl;
+            cout<<" | *Family Name              *Age              *Student Address|\n"
+                <<" | *First Name               *Gender                           |\n"
+                <<" | *Middle Name              *Contact Number                   |"<<endl;
+            cout<<" ***************************************************************"<<endl;
+
+
+                cout<<" ***************************************************************"<<endl;
+                cout<< " Enter Family Name:"<<endl;
+                cin.ignore();
+                getline(cin,name);
+            
+                info.familyName = name; 
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter First Name:"<<endl;
+                getline(cin,name);
+
+                info.firstName = name;
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter Middle Name:"<<endl;
+                getline(cin,name);
+
+                info.middleName = name;
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter Age:"<<endl;
+                getline(cin,strChoice); //If just int, it would have an error when user inputs a "2w" or any number proceeding with a string. 
+
+                    while(!util.is_Number(strChoice)){
+                        cout<< "[***WARNING***] Error. Invalid Input"<<endl;
+                        cout<<"\nEnter Age: ";;
+                        getline(cin,strChoice);
+                    }
+
+                    age= stoi(strChoice);//converts the string back to int
+                    cout<<"Age test:"<<age<<endl;
+                while(age<1 || age>500){
+                cout<< "[***WARNING***] Error. Invalid Input. No negative age exists."<<endl;
+                cout<< " Enter Age:";        
+                getline(cin,strChoice);
+                age=stoi(strChoice);
+                }
+
+                info.age = age; 
+            cout<<" ***************************************************************"<<endl;
+                invalidchoice = true;
+                while(invalidchoice == true){
+                    cout<<"\n Enter Gender:"<<endl;
+                    cout<< " 1> Male 2> Female"<<endl;
+                    cout<< " Enter the number of choice:"<<endl;
+                    getline(cin,strChoice); 
+
+                    while(!util.is_Number(strChoice)){
+                        cout<< "[***WARNING***] Error. Invalid Input"<<endl;
+                        cout<<"\nChoice: ";
+                        getline(cin,strChoice);
+                    }
+
+                    element2 = stoi(strChoice);
+
+                    if(element2 == 1){
+                        info.gender = "MALE";
+                        invalidchoice = false;
+                    }
+                    else if(element2 == 2){
+                        info.gender = "FEMALE";
+                        invalidchoice = false;
+                    }
+                    else{
+                        cout<<"[**WARNING**] Invalid Input, info not stored. (1) Male (2) Female"<<endl;   
+                    }
+                }
+            cout<<" ***************************************************************"<<endl;
+                cout<< "\n Enter contact number:"<<endl;
+
+                getline(cin,contactnum);
+                while(util.is_Number(contactnum) == 0){
+                    cout<<"[**WARNING**] Invalid Input, non-integer. Info not stored."<<endl;
+                    cout<< " Enter contact number:";
+                    getline(cin,contactnum);
+                }
+                info.contactNumber = contactnum;
+
+            cout<<" ***************************************************************"<<endl;
+                cout<< " Enter address:"<<endl;;
+                getline(cin,address);
+
+                info.student_address = address;
+
+                a.update(id,info);
+                cout<<"\n\n[INFO] Student successfully updated."<<endl;
+
+                    cout<<"--------------------------------------------------"<<endl;
+                    cout<<"[STUDENT ID: 2020-"<<id<<"]"<<endl;
+                    cout<<"Family Name----->"<<info.familyName<<endl;
+                    cout<<"First Name------>"<<info.firstName<<endl;
+                    cout<<"Middle Name----->"<<info.middleName<<endl;
+                    cout<<"Age------------->"<<info.age<<endl;
+                    cout<<"Gender---------->"<<info.gender<<endl;
+                    cout<<"Contact Number-->"<<info.contactNumber<<endl;
+                    cout<<"Address--------->"<<info.student_address<<endl;
+                    cout<<"--------------------------------------------------"<<endl;
+            
+
+                cout << string(2, '\n');
+                }else{
+                    cout<<"[**WARNING**] Student Not Found. ID does not exist."<<endl;
+                }   
+            }
+                break;
+            case 6://Program Termination
+            cout<<"[INFO] Program Terminated"<<endl; 
+            continueLoop = false; 
+
+            break;
+
+            default:
+            cout<<"[**WARNING**] Invalid Choice. If you want to terminate the program, press (6)"<<endl;
+        }
+    }     
+    return 0;
+}
